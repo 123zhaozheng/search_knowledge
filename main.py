@@ -89,14 +89,16 @@ async def retrieve_knowledge(request: QueryRequest):
 
     try:
         # 第一步: LLM判断是否需要检索
+        step1_start = time.time()
         print(f"[Step 1] LLM判断是否需要检索...")
         llm_decision = await llm_service.decide_retrieval(
             question=request.question,
             datasets=request.datasets,
             document=request.document
         )
+        step1_time = time.time() - step1_start
 
-        print(f"[Step 1] 判断结果: need_retrieval={llm_decision.need_retrieval}")
+        print(f"[Step 1] 判断结果: need_retrieval={llm_decision.need_retrieval} (耗时{step1_time:.2f}s)")
 
         # 如果不需要检索,直接返回
         if not llm_decision.need_retrieval:
@@ -123,6 +125,7 @@ async def retrieve_knowledge(request: QueryRequest):
         print(f"[Step 1] 生成 {len(llm_decision.retrieval_queries)} 个检索查询")
 
         # 第二步: 并行检索所有知识库
+        step2_start = time.time()
         print(f"[Step 2] 并行检索知识库...")
         all_segments = await dify_client.batch_retrieve(
             retrieval_queries=llm_decision.retrieval_queries,
@@ -131,8 +134,9 @@ async def retrieve_knowledge(request: QueryRequest):
             score_threshold=request.score_threshold,
             semantic_weight=request.semantic_weight
         )
+        step2_time = time.time() - step2_start
 
-        print(f"[Step 2] 检索完成,共 {len(all_segments)} 个片段")
+        print(f"[Step 2] 检索完成,共 {len(all_segments)} 个片段 (耗时{step2_time:.2f}s)")
 
         # 如果没有检索到任何结果
         if not all_segments:
@@ -146,6 +150,7 @@ async def retrieve_knowledge(request: QueryRequest):
             )
 
         # 第三步: 使用Reranker进行重排序
+        step3_start = time.time()
         print(f"[Step 3] Rerank重排序 (top_k={request.rerank_top_k})...")
 
         # 构建查询文本(合并原始问题和文档)
@@ -160,12 +165,13 @@ async def retrieve_knowledge(request: QueryRequest):
             segments=all_segments,
             top_k=request.rerank_top_k
         )
+        step3_time = time.time() - step3_start
 
-        print(f"[Step 3] Rerank完成,返回 {len(reranked_segments)} 个片段")
+        print(f"[Step 3] Rerank完成,返回 {len(reranked_segments)} 个片段 (耗时{step3_time:.2f}s)")
 
         # 计算总耗时
         elapsed_time = time.time() - start_time
-        print(f"[完成] 总耗时: {elapsed_time:.2f}秒\n")
+        print(f"[完成] 总耗时: {elapsed_time:.2f}s (LLM:{step1_time:.2f}s + 检索:{step2_time:.2f}s + Rerank:{step3_time:.2f}s)\n")
 
         # 返回最终结果
         return RetrievalResponse(

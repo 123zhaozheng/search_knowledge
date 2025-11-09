@@ -82,6 +82,11 @@ class DifyClient:
                         segment_data = record.get("segment", {})
                         document_data = segment_data.get("document", {})
 
+                        # 修复：确保score有默认值
+                        score = record.get("score")
+                        if score is None:
+                            score = 0.0
+
                         segment = DocumentSegment(
                             dataset_id=dataset_id,
                             dataset_name=None,
@@ -89,7 +94,7 @@ class DifyClient:
                             document_name=document_data.get("name", ""),
                             segment_id=segment_data.get("id", ""),
                             content=segment_data.get("content", ""),
-                            score=record.get("score", 0.0),
+                            score=score,
                             position=segment_data.get("position"),
                             metadata=document_data.get("doc_metadata", {})
                         )
@@ -169,18 +174,16 @@ class DifyClient:
         # 并行执行所有检索任务
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # 合并所有结果，并根据 segment_id 和 content 去重
+        # 合并所有结果，并根据 segment_id 去重
         seen_segment_ids = set()
-        seen_contents = set()  # 新增：内容去重
         all_segments = []
 
         for result in results:
             if isinstance(result, list):
                 for segment in result:
-                    # 同时根据 segment_id 和 content 去重
-                    if segment.segment_id not in seen_segment_ids and segment.content not in seen_contents:
+                    # 根据 segment_id 去重
+                    if segment.segment_id not in seen_segment_ids:
                         seen_segment_ids.add(segment.segment_id)
-                        seen_contents.add(segment.content)
                         all_segments.append(segment)
             elif isinstance(result, Exception):
                 print(f"[Dify] 检索任务失败: {result}")
