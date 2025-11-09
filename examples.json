@@ -1,0 +1,132 @@
+{
+  "example_request": {
+    "description": "示例请求 - 产品API使用问题",
+    "request": {
+      "datasets": [
+        {
+          "dataset_id": "dataset-api-docs",
+          "description": "产品API技术文档知识库,包含所有API接口的使用说明、参数说明和示例代码"
+        },
+        {
+          "dataset_id": "dataset-faq",
+          "description": "常见问题FAQ知识库,包含用户常见问题、错误处理和最佳实践"
+        }
+      ],
+      "dataset_api_key": "dataset-xxxxxxxxxxxxxx",
+      "question": "如何使用API批量导入用户数据?",
+      "document": "用户正在查看用户管理模块的文档",
+      "top_k": 10,
+      "rerank_top_k": 5,
+      "score_threshold": 0.4,
+      "semantic_weight": 0.7
+    }
+  },
+  "example_response": {
+    "success": true,
+    "need_retrieval": true,
+    "retrieval_queries": [
+      {
+        "dataset_id": "dataset-api-docs",
+        "query": "批量导入用户数据 API 接口使用方法"
+      },
+      {
+        "dataset_id": "dataset-faq",
+        "query": "用户数据批量导入常见问题"
+      }
+    ],
+    "segments": [
+      {
+        "dataset_id": "dataset-api-docs",
+        "dataset_name": "产品API技术文档",
+        "document_id": "doc-user-api",
+        "document_name": "用户管理API.md",
+        "segment_id": "seg-123",
+        "content": "批量导入用户API使用说明:\n\nPOST /api/v1/users/batch-import\n\n请求体:\n{\n  \"users\": [\n    {\"name\": \"张三\", \"email\": \"zhangsan@example.com\"},\n    {\"name\": \"李四\", \"email\": \"lisi@example.com\"}\n  ]\n}\n\n该接口支持一次性导入最多1000个用户...",
+        "score": 0.95,
+        "position": 15,
+        "metadata": {
+          "file_type": "markdown",
+          "created_at": "2024-01-15"
+        }
+      },
+      {
+        "dataset_id": "dataset-faq",
+        "dataset_name": "常见问题FAQ",
+        "document_id": "doc-faq-import",
+        "document_name": "数据导入常见问题.md",
+        "segment_id": "seg-456",
+        "content": "Q: 批量导入用户时遇到超时怎么办?\n\nA: 如果导入数据量较大导致超时,建议:\n1. 分批导入,每批不超过500条\n2. 使用异步导入接口\n3. 增加请求超时时间...",
+        "score": 0.88,
+        "position": 8,
+        "metadata": {
+          "file_type": "markdown",
+          "category": "import"
+        }
+      }
+    ],
+    "total_segments": 2,
+    "message": "检索成功,返回2个相关文档片段 (耗时1.45秒)"
+  },
+  "test_cases": [
+    {
+      "name": "需要检索 - API使用问题",
+      "request": {
+        "datasets": [
+          {
+            "dataset_id": "test-dataset-1",
+            "description": "技术文档"
+          }
+        ],
+        "dataset_api_key": "test-key",
+        "question": "如何配置数据库连接?",
+        "rerank_top_k": 3
+      },
+      "expected": {
+        "need_retrieval": true
+      }
+    },
+    {
+      "name": "不需要检索 - 问候语",
+      "request": {
+        "datasets": [
+          {
+            "dataset_id": "test-dataset-1",
+            "description": "技术文档"
+          }
+        ],
+        "dataset_api_key": "test-key",
+        "question": "你好",
+        "rerank_top_k": 3
+      },
+      "expected": {
+        "need_retrieval": false
+      }
+    },
+    {
+      "name": "多知识库检索",
+      "request": {
+        "datasets": [
+          {
+            "dataset_id": "dataset-1",
+            "description": "产品文档"
+          },
+          {
+            "dataset_id": "dataset-2",
+            "description": "开发文档"
+          },
+          {
+            "dataset_id": "dataset-3",
+            "description": "API参考"
+          }
+        ],
+        "dataset_api_key": "test-key",
+        "question": "如何部署应用到生产环境?",
+        "top_k": 15,
+        "rerank_top_k": 8
+      },
+      "expected": {
+        "need_retrieval": true
+      }
+    }
+  ]
+}
